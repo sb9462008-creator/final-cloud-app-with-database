@@ -1,102 +1,103 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-     {% load static %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ object.name }}</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{% static 'onlinecourse/course.css' %}">
 </head>
-
 <body>
-    <!-- Navigation bar -->
-    <nav class="navbar navbar-light bg-light">
-        <div class="container-fluid">
-            <div class="navbar-header">
-                  <a class="navbar-brand" href="{% url 'onlinecourse:index' %}">Home</a>
-            </div>
-            <ul class="nav navbar-nav navbar-right">
-                {% if user.is_authenticated %}
-                <li>
-                    <a class="btn btn-link" href="#">{{ user.first_name }}({{ user.username }})</a>
-                    <a class="btn btn-link" href="{% url 'onlinecourse:logout' %}">Logout</a>
-                </li>
-                {% else %}
-                <li>
-                    <form class="form-inline" action="{% url 'onlinecourse:login' %}" method="post">
-                        {% csrf_token %}
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Username" name="username" >
-                            <input type="password" class="form-control" placeholder="Username" name="psw" >
-                            <button class="btn btn-primary" type="submit">Login</button>
-                            <a class="btn btn-link" href="{% url 'onlinecourse:registration' %}">Sign Up</a>
-                        </div>
-                    </form>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
-    </nav>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="{% url 'onlinecourse:index' %}">Online Course</a>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ml-auto">
+            {% if user.is_authenticated %}
+            <li class="nav-item">
+                <span class="navbar-text text-white mr-3">Welcome, {{ user.first_name }}</span>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'onlinecourse:logout' %}">Logout</a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'onlinecourse:login' %}">Login</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'onlinecourse:registration' %}">Register</a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
 
-    <!-- Page content -->
-    <div class="container-fluid">
-            <h2>{{ course.name }}</h2>
-            <div class="card-columns-vertical">
-                {% for lesson in course.lesson_set.all %}
-                    <div class="card mt-1">
-                        <div class="card-header"><h5>Lesson {{lesson.order|add:1}}: {{lesson.title}}</h5></div>
-                        <div class="card-body">{{lesson.content}}</div>
-                    </div>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>{{ object.name }}</h2>
+            <p class="text-muted">{{ object.description }}</p>
+            {% if object.image %}
+            <img src="{{ object.image.url }}" class="img-fluid mb-3" alt="{{ object.name }}">
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            {% if not object.is_enrolled %}
+            <form action="{% url 'onlinecourse:enroll' object.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-block">Enroll</button>
+            </form>
+            {% else %}
+            <div class="alert alert-success">You are enrolled!</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <hr>
+    <h3>Lessons</h3>
+    {% for lesson in object.lesson_set.all %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5>{{ lesson.title }}</h5>
+        </div>
+        <div class="card-body">
+            <p>{{ lesson.content }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if object.is_enrolled %}
+    <hr>
+    <h3>Exam</h3>
+    <form action="{% url 'onlinecourse:submit' object.id %}" method="post">
+        {% csrf_token %}
+        {% for question in object.question_set.all %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>Question {{ forloop.counter }}: {{ question.content }}</strong>
+                <span class="badge badge-info ml-2">{{ question.grade }} points</span>
+            </div>
+            <div class="card-body">
+                {% for choice in question.choice_set.all %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                           name="choice_{{ forloop.parentloop.counter }}_{{ forloop.counter }}"
+                           value="{{ choice.id }}"
+                           id="choice_{{ choice.id }}">
+                    <label class="form-check-label" for="choice_{{ choice.id }}">
+                        {{ choice.content }}
+                    </label>
+                </div>
                 {% endfor %}
             </div>
-            <!-- Task: show questions and choices -->
-            <!-- <HINT> Use Bootstrap Collapse to hide exam first, more details could be found here
-            https://www.w3schools.com/bootstrap4/bootstrap_collapse.asp-->
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-success btn-lg mb-4">Submit Exam</button>
+    </form>
+    {% endif %}
+</div>
 
-            <!--
-
-            A collapse example here:
-            <div id="exam" class="collapse">
-                Click to expand elements within the collapse div
-                </div>
-
-            -->
-
-            <!-- <HINT> If user is authenticated, show course exam with a list of question -->
-
-            <!-- <HINT> Each example will have many questions -->
-
-            <!-- <HINT> Each question will have many choices -->
-
-
-            <!-- <HINT> Create a form to collect the selected choices for all questions -->
-            <!-- <HINT> For each question choice, you may create a checkbox input like
-            <input type="check" name="choice_{{choice.id}}" id="{{choice.id}}" ...>
-            -->
-
-            <!-- A choice submission form example
-            <form id="questionform" action="point to a submit view" method="post">
-                        ... for each question in the course ...
-                        <div class="card mt-1">
-                            <div class="card-header"><h5>{{ question.question_text}}</h5></div>
-                            {% csrf_token %}
-                            <div class="form-group">
-                               ... for each choice in the question ...
-                                <div class="form-check">
-                                    <label class="form-check-label">
-                                        <input type="checkbox" name="choice_{{choice.id}}"
-                                               class="form-check-input" id="{{choice.id}}"
-                                               value="{{choice.id}}">{{ choice.choice_text }}
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    <input class="btn btn-success btn-block" type="submit" value="Submit">
-            </form> -->
-
-            <!--Check here to see more details Bootstrap checkbox
-             https://www.w3schools.com/bootstrap4/bootstrap_forms_inputs.asp-->
-    </div>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
